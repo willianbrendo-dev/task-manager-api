@@ -1,4 +1,4 @@
-package com.wb.task_manager_api.task.domain;
+package com.wb.task_manager_api.domain.task;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

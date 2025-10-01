@@ -1,7 +1,7 @@
-package com.wb.task_manager_api.task.application;
-import com.wb.task_manager_api.task.domain.Task;
+package com.wb.task_manager_api.service;
+import com.wb.task_manager_api.domain.task.Task;
 import org.springframework.transaction.annotation.Transactional;
-import com.wb.task_manager_api.task.domain.TaskRepository;
+import com.wb.task_manager_api.domain.task.TaskRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
