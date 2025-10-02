@@ -12,26 +12,23 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:   # ✅ aqui dentro do serviço db
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api: # NOVO SERVIÇO: Nossa API Java
     build: . # Manda o Docker construir a imagem usando o Dockerfile neste diretório
     ports:
       - "8080:8080" # Porta da API
     environment:
-      # Passa as configurações de DB para a API (melhor que hardcoded no application.properties)
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/taskmanagerdb
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
     depends_on:
-      db: # Garante que o contêiner 'api' só inicie DEPOIS do contêiner 'db'
-        condition: service_healthy # (Opcional, mas boa prática: espera o DB estar pronto)
-
-# Adiciona uma checagem de saúde (healthcheck) para o PostgreSQL
-healthcheck:
-  test: ["CMD-SHELL", "pg_isready -U user"]
-  interval: 5s
-  timeout: 5s
-  retries: 5
+      db:
+        condition: service_healthy # espera o DB estar pronto
 
 volumes:
   postgres_data:

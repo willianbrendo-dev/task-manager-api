@@ -1,11 +1,13 @@
 package com.wb.task_manager_api.security.config;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
+
 
 import com.wb.task_manager_api.domain.user.UserRepository;
 import com.wb.task_manager_api.security.jwt.TokenService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,50 +16,56 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Este filtro é responsável por interceptar todas as requisições HTTP
+ * para verificar a presença e validade de um Token JWT no cabeçalho Authorization.
+ * Se o token for válido, ele autentica o usuário DENTRO DO CONTEXTO,
+ * sem chamar o AuthenticationManager, evitando a recursão infinita (StackOverflowError).
+ */
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
-    private final TokenService tokenService;
-    private final UserRepository userRepository;
 
-    public SecurityFilter(TokenService tokenService, UserRepository userRepository) {
-        this.tokenService = tokenService;
-        this.userRepository = userRepository;
-    }
+    @Autowired
+    private TokenService tokenService;
+
+    // Usamos o UserRepository (que implementa UserDetailsService implicitamente ou explicitamente)
+    // para carregar os detalhes do usuário pelo login (subject do token).
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        // 1. Obtém o token da requisição
+        // 1. Obter o token do cabeçalho
         var token = this.recoverToken(request);
 
-        // 2. Se um token foi encontrado:
         if (token != null) {
-            // 3. Valida o token e obtém o login (email) do usuário
+            // 2. Validar o token e extrair o login do usuário (subject)
             var login = tokenService.validateToken(token);
 
-            // Se a validação foi bem-sucedida (login não é vazio):
-            if (!login.isEmpty()) {
-                // 4. Busca o UserDetails no banco pelo login/email
-                UserDetails user = userRepository.findByEmail(login);
+            // 3. Carregar os detalhes do usuário
+            // É CRUCIAL NÃO USAR AuthenticationManager AQUI.
+            // Apenas carregamos o UserDetails do banco de dados (via UserRepository)
+            UserDetails user = userRepository.findByEmail(login);
 
-                // 5. Cria o objeto de autenticação para o Spring Security
+            if (user != null) {
+                // 4. Criar o objeto de Autenticação e setar no SecurityContextHolder
+                // Isso informa ao Spring Security que este usuário está autenticado para esta requisição.
                 var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-
-                // 6. Define o usuário como autenticado no contexto da aplicação
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
 
-        // 7. Continua o fluxo da requisição (para o Controller ou próximo filtro)
+        // 5. Continua a cadeia de filtros
         filterChain.doFilter(request, response);
     }
 
     /**
-     * Tenta recuperar o token do cabeçalho "Authorization".
+     * Extrai o Token JWT do cabeçalho Authorization.
      */
     private String recoverToken(HttpServletRequest request) {
         var authHeader = request.getHeader("Authorization");
         if (authHeader == null) return null;
-        // O token JWT vem no formato "Bearer [TOKEN]", então removemos o prefixo.
+        // Espera-se o formato "Bearer <TOKEN>"
         return authHeader.replace("Bearer ", "");
     }
 }
