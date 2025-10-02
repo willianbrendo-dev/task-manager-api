@@ -1,137 +1,87 @@
 📝 Task Manager API
-Este é um projeto de API RESTful para gerenciamento de tarefas, construído com Spring Boot 3, Spring Data JPA e Spring Security para autenticação via JWT (JSON Web Token).
+Este é um projeto de API RESTful para gerenciamento de tarefas, construído com **Spring Boot 3**, **Spring Data JPA** e **Spring Security** para autenticação via **JWT (JSON Web Token)**.
 
+------------------------------------------------------------
 🚀 Como Executar
-Pré-requisitos
-Certifique-se de ter instalado:
+------------------------------------------------------------
+Pré-requisitos:
+- Java 21+
+- Maven (ou Gradle, dependendo da sua estrutura de build)
+- PostgreSQL (local ou via Docker)
 
-Java 21+
+1. Clone o repositório:
+   git clone https://github.com/wbrendo/task-manager-api.git
+   cd task-manager-api
 
-Maven (ou Gradle, dependendo da sua estrutura de build)
+2. Configure o banco de dados:
+   Edite o arquivo `src/main/resources/application.properties` (ou `application.yml`).
 
-Um banco de dados PostgreSQL (configurado para rodar localmente ou via Docker).
+   Exemplo para `application.properties`:
+   spring.datasource.url=jdbc:postgresql://localhost:5432/taskdb
+   spring.datasource.username=seu_usuario
+   spring.datasource.password=sua_senha
+   spring.jpa.hibernate.ddl-auto=update
+   # Use 'validate' ou 'none' em produção!
 
-Configuração
-Clone o Repositório:
+3. Execute o aplicativo:
+   ./mvnw spring-boot:run
+   ou
+   java -jar target/task-manager-api.jar
 
-git clone [https://github.com/wbrendo/task-manager-api.git](https://github.com/wbrendo/task-manager-api.git)
-cd task-manager-api
+➡️ A API estará disponível em: http://localhost:8080
 
-Configuração do Banco de Dados:
-Edite o arquivo src/main/resources/application.properties (ou application.yml) e configure as credenciais do seu PostgreSQL.
-
-# Exemplo para application.properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/taskdb
-spring.datasource.username=seu_usuario
-spring.datasource.password=sua_senha
-spring.jpa.hibernate.ddl-auto=update # Use 'validate' ou 'none' em produção!
-
-Executar o Aplicativo:
-
-./mvnw spring-boot:run
-# ou
-java -jar target/task-manager-api.jar
-
-A API estará disponível em http://localhost:8080.
-
+------------------------------------------------------------
 ⚙️ Endpoints da API
-Módulo de Autenticação (/auth)
-Método
+------------------------------------------------------------
 
-Endpoint
+📌 Módulo de Autenticação (/auth)
+---------------------------------
+POST   /auth/register   → Cria uma nova conta
+Body:
+{
+  "email": "...",
+  "password": "...",
+  "role": "USER"
+}
 
-Descrição
+POST   /auth/login      → Autentica e retorna JWT
+Body:
+{
+  "email": "...",
+  "password": "..."
+}
 
-Corpo da Requisição (JSON)
+GET    /auth/validate   → Valida o token JWT
+Requer: Bearer Token
 
-POST
+📌 Módulo de Tarefas (/tasks)
+---------------------------------
+Todas as rotas requerem: Authorization: Bearer <TOKEN_JWT>
 
-/auth/register
+GET     /tasks           → Lista todas as tarefas
+POST    /tasks           → Cria nova tarefa
+Body:
+{
+  "title": "...",
+  "description": "...",
+  "dueDate": "YYYY-MM-DD"
+}
 
-Cria uma nova conta de usuário.
+GET     /tasks/{id}      → Retorna tarefa específica
+PUT     /tasks/{id}      → Atualiza tarefa
+Body:
+{
+  "title": "...",
+  "description": "...",
+  "completed": true/false
+}
 
-{ "email": "...", "password": "...", "role": "USER" }
+PATCH   /tasks/{id}/toggle → Alterna status de conclusão
+DELETE  /tasks/{id}        → Remove tarefa
 
-POST
-
-/auth/login
-
-Autentica o usuário e retorna um token JWT.
-
-{ "email": "...", "password": "..." }
-
-GET
-
-/auth/validate
-
-Verifica a validade do token JWT (Exemplo de rota protegida).
-
-Nenhum. Requer Bearer Token.
-
-Módulo de Tarefas (/tasks)
-Todas as rotas de Tarefas requerem um Authorization: Bearer <TOKEN_JWT> válido.
-
-Método
-
-Endpoint
-
-Descrição
-
-Corpo da Requisição (JSON)
-
-GET
-
-/tasks
-
-Lista todas as tarefas do usuário autenticado.
-
-Nenhum
-
-POST
-
-/tasks
-
-Cria uma nova tarefa.
-
-{ "title": "...", "description": "...", "dueDate": "YYYY-MM-DD" }
-
-GET
-
-/tasks/{id}
-
-Retorna uma tarefa específica.
-
-Nenhum
-
-PUT
-
-/tasks/{id}
-
-Atualiza completamente uma tarefa existente.
-
-{ "title": "...", "description": "...", "completed": true/false }
-
-PATCH
-
-/tasks/{id}/toggle
-
-Alterna o status de conclusão de uma tarefa.
-
-Nenhum
-
-DELETE
-
-/tasks/{id}
-
-Remove uma tarefa específica.
-
-Nenhum
-
+------------------------------------------------------------
 🛡️ Segurança
-A segurança é implementada utilizando:
-
-Spring Security: Gerenciamento de autenticação e autorização.
-
-JWT (JSON Web Token): Para comunicação stateless (sem estado) entre cliente e servidor.
-
-BCrypt: Criptografia segura de senhas.
+------------------------------------------------------------
+- Spring Security → Autenticação e autorização
+- JWT (JSON Web Token) → Comunicação stateless
+- BCrypt → Criptografia segura de senhas
