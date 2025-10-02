@@ -1,28 +1,37 @@
-version: "3.9"
+# docker-compose.yml
+version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: postgres_db
-    restart: always
+  db:
+    image: postgres:16-alpine
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
+      POSTGRES_DB: taskmanagerdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+  api: # NOVO SERVIÇO: Nossa API Java
+    build: . # Manda o Docker construir a imagem usando o Dockerfile neste diretório
     ports:
-      - "5050:80"
+      - "8080:8080" # Porta da API
+    environment:
+      # Passa as configurações de DB para a API (melhor que hardcoded no application.properties)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/taskmanagerdb
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+    depends_on:
+      db: # Garante que o contêiner 'api' só inicie DEPOIS do contêiner 'db'
+        condition: service_healthy # (Opcional, mas boa prática: espera o DB estar pronto)
+
+# Adiciona uma checagem de saúde (healthcheck) para o PostgreSQL
+healthcheck:
+  test: ["CMD-SHELL", "pg_isready -U user"]
+  interval: 5s
+  timeout: 5s
+  retries: 5
 
 volumes:
   postgres_data:
